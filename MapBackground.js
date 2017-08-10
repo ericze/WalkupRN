@@ -49,10 +49,6 @@ var zoomCurrentDistance = 0
 //自定义地图
 
 export default class MapBackground extends Component{
-
-
-
-
     constructor(props){
         super(props);
 
@@ -91,8 +87,8 @@ export default class MapBackground extends Component{
 
         //如果触摸点数量大于1
         if (evt.nativeEvent.changedTouches.length > 1) {
-            centerDiffX = (evt.nativeEvent.changedTouches[0].pageX + evt.nativeEvent.changedTouches[1].pageX) / 2 - this.props.cropWidth / 2
-            centerDiffY = (evt.nativeEvent.changedTouches[0].pageY + evt.nativeEvent.changedTouches[1].pageY) / 2 - this.props.cropHeight / 2
+            centerDiffX = (evt.nativeEvent.changedTouches[0].pageX + evt.nativeEvent.changedTouches[1].pageX) / 2 - windowWidth/2
+            centerDiffY = (evt.nativeEvent.changedTouches[0].pageY + evt.nativeEvent.changedTouches[1].pageY) / 2 - windowHeight/ 2
         }
         this.setState({
             style:{
@@ -201,6 +197,49 @@ export default class MapBackground extends Component{
             this.clickUp(evt.nativeEvent.locationX,evt.nativeEvent.locationY);
         }
 
+        if (scale < 1) {
+            // 如果缩放小于1，强制重置为 1
+            scale = 1
+            Animated.timing(animatedScale, {
+                toValue: scale,
+                duration: 100,
+            }).start()
+        }
+
+        if (600 * scale <= windowWidth) {
+            // 如果图片宽度小于盒子宽度，横向位置重置
+            positionX = 0
+            Animated.timing(this.animatedPositionX, {
+                toValue: positionX,
+                duration: 100,
+            }).start()
+        }
+
+        if (600 * scale <= windowHeight) {
+            // 如果图片高度小于盒子高度，纵向位置重置
+            positionY = 0
+            Animated.timing(this.animatedPositionY, {
+                toValue: positionY,
+                duration: 100,
+            }).start()
+        }
+
+        // 横向肯定不会超出范围，由拖拽时控制
+        // 如果图片高度大于盒子高度，纵向不能出现黑边
+        if (this.props.imageHeight * this.scale > this.props.cropHeight) {
+            // 纵向能容忍的绝对值
+            const verticalMax = (this.props.imageHeight * this.scale - this.props.cropHeight) / 2 / this.scale
+            if (this.positionY < -verticalMax) {
+                this.positionY = -verticalMax
+            } else if (this.positionY > verticalMax) {
+                this.positionY = verticalMax
+            }
+            Animated.timing(this.animatedPositionY, {
+                toValue: this.positionY,
+                duration: 100,
+            }).start()
+        }
+
         lastLeft=_currentLeft;
         lastTop=_currentTop;
 
@@ -254,6 +293,17 @@ export default class MapBackground extends Component{
 
     clickUp(x,y){
         Alert.alert('x:'+String(x)+',y:'+String(y));
+    }
+    /**
+     * 重置大小和位置
+     */
+    public reset() {
+        this.scale = 1
+        this.animatedScale.setValue(this.scale)
+        this.positionX = 0
+        this.animatedPositionX.setValue(this.positionX)
+        this.positionY = 0x
+        this.animatedPositionY.setValue(this.positionY)
     }
     render(){
         return(
